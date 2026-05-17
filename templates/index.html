@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de PDF - Portlibros</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+        }
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            color: #f8fafc;
+        }
+        .subtitle {
+            color: #94a3b8;
+            margin-bottom: 32px;
+            font-size: 0.9rem;
+        }
+        .upload-area {
+            border: 2px dashed #475569;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 24px;
+        }
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.05);
+        }
+        .upload-area svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+            color: #6366f1;
+        }
+        .upload-area p {
+            color: #94a3b8;
+            font-size: 0.95rem;
+        }
+        .upload-area .formats {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 8px;
+        }
+        #file-input { display: none; }
+        .file-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 24px;
+            border-radius: 8px;
+        }
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: #334155;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            font-size: 0.85rem;
+        }
+        .file-item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-item .size { color: #64748b; font-size: 0.75rem; }
+        .file-count {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: #6366f1;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn:hover { background: #4f46e5; }
+        .btn:disabled { background: #475569; cursor: not-allowed; }
+        .info {
+            margin-top: 20px;
+            padding: 12px 16px;
+            background: #334155;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+        .info strong { color: #e2e8f0; }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #94a3b8;
+        }
+        .loading.active { display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 Generador de PDF</h1>
+        <p class="subtitle">Sube tus imágenes y genera un PDF listo para imprimir en A4</p>
+
+        <form id="form" action="/generar" method="post" enctype="multipart/form-data">
+            <div class="upload-area" id="upload-area">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+                </svg>
+                <p>Haz clic o arrastra tus imágenes aquí</p>
+                <span class="formats">JPG, JPEG, PNG, WEBP</span>
+            </div>
+
+            <input type="file" id="file-input" name="imagenes" multiple accept=".jpg,.jpeg,.png,.webp">
+
+            <div class="file-count" id="file-count"></div>
+            <div class="file-list" id="file-list"></div>
+
+            <button type="submit" class="btn" id="btn-generar" disabled>Generar PDF</button>
+
+            <div class="loading" id="loading">⏳ Generando PDF, espera un momento...</div>
+        </form>
+
+        <div class="info">
+            <strong>Configuración:</strong> Imágenes de 3×4 cm · Página A4 · Margen 1 cm · 2 copias por foto · 36 imágenes por página
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+        const fileList = document.getElementById('file-list');
+        const fileCount = document.getElementById('file-count');
+        const btn = document.getElementById('btn-generar');
+        const form = document.getElementById('form');
+        const loading = document.getElementById('loading');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            fileInput.files = e.dataTransfer.files;
+            updateFileList();
+        });
+
+        fileInput.addEventListener('change', updateFileList);
+
+        function updateFileList() {
+            const files = fileInput.files;
+            fileList.innerHTML = '';
+
+            if (files.length === 0) {
+                fileCount.textContent = '';
+                btn.disabled = true;
+                return;
+            }
+
+            fileCount.textContent = `${files.length} imagen(es) seleccionada(s)`;
+            btn.disabled = false;
+
+            for (const file of files) {
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                const size = (file.size / 1024).toFixed(1);
+                div.innerHTML = `<span class="name">${file.name}</span><span class="size">${size} KB</span>`;
+                fileList.appendChild(div);
+            }
+        }
+
+        form.addEventListener('submit', () => {
+            btn.disabled = true;
+            btn.textContent = 'Generando...';
+            loading.classList.add('active');
+        });
+    </script>
+</body>
+</html>
