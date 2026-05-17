@@ -2,98 +2,56 @@
   <h1>📚 Cover Books to PDF Generator</h1>
   <p><i>Generador automático de PDFs en formato de cuadrícula a partir de portadas de libros.</i></p>
 
-  [![Python](https://img.shields.io/badge/Python-3.x-blue.svg)](https://www.python.org/)
-  [![Flask](https://img.shields.io/badge/Flask-Web%20Framework-lightgrey.svg)](https://flask.palletsprojects.com/)
-  [![ReportLab](https://img.shields.io/badge/ReportLab-PDF%20Generation-red.svg)](https://docs.reportlab.com/)
+  [![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](https://en.wikipedia.org/wiki/HTML5)
+  [![JavaScript](https://img.shields.io/badge/JavaScript-323330?style=for-the-badge&logo=javascript&logoColor=F7DF1E)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+  [![jsPDF](https://img.shields.io/badge/jsPDF-PDF%20Generation-red.svg?style=for-the-badge)](https://github.com/parallax/jsPDF)
 </div>
 
 <br>
 
 ## 📖 Descripción del Proyecto
 
-Esta es una aplicación web intuitiva construida con **Python** y **Flask**. Permite a los usuarios subir múltiples imágenes (como portadas de libros, tarjetas, o cromos) y automáticamente genera un documento PDF optimizado en tamaño A4 con una disposición en cuadrícula.
+Esta es una aplicación web estática y moderna que funciona **completamente en tu navegador**. Permite a los usuarios subir múltiples imágenes (como portadas de libros, tarjetas o cromos) y automáticamente genera un documento PDF optimizado en tamaño A4 con una disposición en cuadrícula.
 
-Ideal para imprimir colecciones: cada imagen se acomoda automáticamente para aprovechar al máximo el espacio de la hoja (con dimensiones de 3x4 cm por imagen y separaciones de 3mm) y además **duplica cada portada** según las especificaciones.
+Al no requerir ningún servidor o backend de Python, es **100% gratuita de alojar en GitHub Pages**, mucho más rápida y completamente privada, ya que los archivos nunca abandonan tu dispositivo.
+
+Ideal para imprimir colecciones: cada imagen se acomoda automáticamente para aprovechar al máximo el espacio de la hoja (con dimensiones de 3x4 cm por imagen y separaciones de 3mm) y además **duplica cada portada** automáticamente.
 
 ---
 
 ## ✨ Características
 
+- 🔒 **100% Privacidad**: Las imágenes se procesan localmente en tu navegador. No se sube nada a ningún servidor.
+- ⚡ **Procesamiento instantáneo**: Generación rápida gracias a la librería `jsPDF`.
 - 🖼️ **Soporte multi-formato**: Admite imágenes `.jpg`, `.jpeg`, `.png`, y `.webp`.
-- ⚡ **Procesamiento rápido**: Generación del PDF casi instantánea gracias a la librería `reportlab`.
 - 📏 **Disposición inteligente**: Calcula dinámicamente columnas y filas para ajustarse perfectamente al papel A4.
-- 🧹 **Limpieza automática**: Usa directorios temporales que se borran automáticamente, manteniendo el servidor limpio.
-- 🎨 **Interfaz amigable**: Interfaz web simple y directa para subir los archivos de manera sencilla.
+- 🎨 **Interfaz amigable**: Interfaz web intuitiva con soporte "Arrastrar y Soltar" (Drag and Drop).
 
 ---
 
-## 🛠️ Requisitos Previos
+## 🚀 Despliegue en GitHub Pages
 
-Asegúrate de tener instalado en tu sistema:
-- [Python 3.8+](https://www.python.org/downloads/)
-- `pip` (Administrador de paquetes de Python)
+Al ser un sitio web puramente estático, puedes tenerlo en línea gratis en segundos:
 
----
-
-## 🚀 Instalación y Configuración
-
-Sigue estos pasos para ejecutar el proyecto en tu máquina local:
-
-### 1. Clonar el repositorio
-```bash
-git clone https://github.com/JuPerDev/cover_books.git
-cd cover_books
-```
-
-### 2. Crear y activar un entorno virtual (Recomendado)
-Para mantener las dependencias aisladas del resto de tu sistema:
-
-**En Windows:**
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-```
-
-**En macOS y Linux:**
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-### 3. Instalar las dependencias
-Instala los paquetes necesarios definidos en `requirements.txt`:
-```bash
-pip install -r requirements.txt
-```
+1. Ve a los **Settings** (Configuración) de este repositorio en GitHub.
+2. Navega a la sección **Pages** (Páginas) en el menú lateral izquierdo.
+3. En **Source** (Fuente), selecciona la rama `main` y la carpeta `/ (root)`.
+4. Haz clic en **Save** (Guardar).
+5. En unos minutos, tu aplicación estará disponible en vivo a través del enlace proporcionado por GitHub (por ejemplo, `https://JuPerDev.github.io/cover_books/`).
 
 ---
 
-## 💻 Uso de la Aplicación
+## 💻 Uso Local
 
-1. Una vez activado el entorno virtual y con las dependencias instaladas, arranca el servidor:
+Si prefieres usarlo sin internet en tu computadora:
+
+1. Clona el repositorio o descarga los archivos.
    ```bash
-   python app.py
+   git clone https://github.com/JuPerDev/cover_books.git
    ```
-2. Abre tu navegador web favorito y dirígete a:
-   👉 **`http://localhost:8080`**
-3. Selecciona las imágenes de tus portadas.
-4. Haz clic en el botón de **Generar PDF** y la descarga del archivo `Coleccion_Libros_Auto.pdf` comenzará de forma automática.
-
----
-
-## 📁 Estructura del Proyecto
-
-```text
-cover_books/
-│
-├── app.py                 # Código principal del servidor (Flask)
-├── requirements.txt       # Dependencias necesarias
-├── BASE.MD                # Script base original de consola (referencia)
-├── .gitignore             # Archivos excluidos de git
-├── templates/
-│   └── index.html         # Interfaz web
-└── README.md              # Documentación del proyecto
-```
+2. Simplemente abre el archivo `index.html` en tu navegador web favorito (Chrome, Firefox, Safari, Edge, etc.) haciendo doble clic sobre él.
+3. Selecciona o arrastra tus portadas.
+4. Haz clic en **Generar PDF** y el archivo `Coleccion_Libros_Auto.pdf` se descargará automáticamente.
 
 ---
 

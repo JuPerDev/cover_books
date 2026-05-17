@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generador de PDF - Portlibros</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -121,26 +122,24 @@
 <body>
     <div class="container">
         <h1>📚 Generador de PDF</h1>
-        <p class="subtitle">Sube tus imágenes y genera un PDF listo para imprimir en A4</p>
+        <p class="subtitle">Sube tus imágenes y genera un PDF listo para imprimir en A4 directamente en tu navegador.</p>
 
-        <form id="form" action="/generar" method="post" enctype="multipart/form-data">
-            <div class="upload-area" id="upload-area">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
-                </svg>
-                <p>Haz clic o arrastra tus imágenes aquí</p>
-                <span class="formats">JPG, JPEG, PNG, WEBP</span>
-            </div>
+        <div class="upload-area" id="upload-area">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+            </svg>
+            <p>Haz clic o arrastra tus imágenes aquí</p>
+            <span class="formats">JPG, JPEG, PNG, WEBP</span>
+        </div>
 
-            <input type="file" id="file-input" name="imagenes" multiple accept=".jpg,.jpeg,.png,.webp">
+        <input type="file" id="file-input" multiple accept=".jpg,.jpeg,.png,.webp">
 
-            <div class="file-count" id="file-count"></div>
-            <div class="file-list" id="file-list"></div>
+        <div class="file-count" id="file-count"></div>
+        <div class="file-list" id="file-list"></div>
 
-            <button type="submit" class="btn" id="btn-generar" disabled>Generar PDF</button>
+        <button class="btn" id="btn-generar" disabled>Generar PDF</button>
 
-            <div class="loading" id="loading">⏳ Generando PDF, espera un momento...</div>
-        </form>
+        <div class="loading" id="loading">⏳ Generando PDF, espera un momento...</div>
 
         <div class="info">
             <strong>Configuración:</strong> Imágenes de 3×4 cm · Página A4 · Margen 1 cm · 2 copias por foto · 36 imágenes por página
@@ -153,7 +152,6 @@
         const fileList = document.getElementById('file-list');
         const fileCount = document.getElementById('file-count');
         const btn = document.getElementById('btn-generar');
-        const form = document.getElementById('form');
         const loading = document.getElementById('loading');
 
         uploadArea.addEventListener('click', () => fileInput.click());
@@ -198,10 +196,95 @@
             }
         }
 
-        form.addEventListener('submit', () => {
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve({ name: file.name, data: e.target.result });
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        btn.addEventListener('click', async () => {
+            if (fileInput.files.length === 0) return;
+
             btn.disabled = true;
             btn.textContent = 'Generando...';
             loading.classList.add('active');
+
+            try {
+                // 1. Read all files as data URLs
+                const filesArray = Array.from(fileInput.files);
+                const results = await Promise.all(filesArray.map(f => readFileAsDataURL(f)));
+
+                // 2. Sort by name alphabetically (like the Python script did)
+                results.sort((a, b) => a.name.localeCompare(b.name));
+
+                // 3. Generate PDF using jsPDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4');
+
+                const a4W = 210;
+                const a4H = 297;
+                const margin = 10;
+                const imgW = 30;
+                const imgH = 40;
+                const spacing = 3;
+
+                const areaW = a4W - 2 * margin;
+                const areaH = a4H - 2 * margin;
+
+                const cols = Math.floor((areaW + spacing) / (imgW + spacing));
+                const rows = Math.floor((areaH + spacing) / (imgH + spacing));
+
+                let colActual = 0;
+                let filaActual = 0;
+
+                for (const item of results) {
+                    // Repeat 2 times per image as the original logic
+                    for (let i = 0; i < 2; i++) {
+                        const x = margin + colActual * (imgW + spacing);
+                        const y = margin + filaActual * (imgH + spacing);
+
+                        // Extract format (jpeg, png, webp) to tell jsPDF
+                        // However, jsPDF's addImage can usually infer the format from data URL
+                        // Data URL looks like: data:image/png;base64,...
+                        doc.addImage(item.data, x, y, imgW, imgH);
+
+                        colActual++;
+                        if (colActual >= cols) {
+                            colActual = 0;
+                            filaActual++;
+                        }
+
+                        if (filaActual >= rows) {
+                            // Only add a new page if there are more images to process
+                            doc.addPage();
+                            colActual = 0;
+                            filaActual = 0;
+                        }
+                    }
+                }
+
+                // If the last thing we did was add a new page but didn't put anything on it
+                // we should technically delete it, but the logic above only adds a page 
+                // when filaActual >= rows. It will leave a blank page at the very end 
+                // if it happens to exactly fill the previous page. Let's fix that:
+                if (colActual === 0 && filaActual === 0 && doc.internal.getNumberOfPages() > 1) {
+                    // Check if it's completely empty. If we just did doc.addPage() and the loop ends.
+                    doc.deletePage(doc.internal.getNumberOfPages());
+                }
+
+                doc.save("Coleccion_Libros_Auto.pdf");
+
+            } catch (error) {
+                console.error("Error generando PDF:", error);
+                alert("Ocurrió un error al generar el PDF.");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Generar PDF';
+                loading.classList.remove('active');
+            }
         });
     </script>
 </body>
