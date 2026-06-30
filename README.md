@@ -1,6 +1,6 @@
 <div align="center">
-  <h1>📚 Cover Books to PDF Generator</h1>
-  <p><i>Generador automático de PDFs en formato de cuadrícula a partir de portadas de libros.</i></p>
+  <h1>📚 Portlibros</h1>
+  <p><i>Generador automático de hojas imprimibles a partir de portadas de libros locales o encontradas en internet.</i></p>
 
   [![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](https://en.wikipedia.org/wiki/HTML5)
   [![JavaScript](https://img.shields.io/badge/JavaScript-323330?style=for-the-badge&logo=javascript&logoColor=F7DF1E)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
@@ -11,20 +11,24 @@
 
 ## 📖 Descripción del Proyecto
 
-Esta es una aplicación web estática y moderna que funciona **completamente en tu navegador**. Permite a los usuarios subir múltiples imágenes (como portadas de libros, tarjetas o cromos) y automáticamente genera un documento PDF optimizado en tamaño A4 con una disposición en cuadrícula.
+Esta es una aplicación web estática y moderna que funciona directamente en el navegador. Permite subir múltiples imágenes (como portadas de libros, tarjetas o cromos), buscar portadas en internet con Open Library y generar hojas listas para imprimir con una disposición en cuadrícula.
 
-Al no requerir ningún servidor o backend de Python, es **100% gratuita de alojar en GitHub Pages**, mucho más rápida y completamente privada, ya que los archivos nunca abandonan tu dispositivo.
+Al no requerir servidor propio ni backend de Python, es gratuita de alojar en GitHub Pages y rápida de usar. Las librerías principales van incluidas en el repositorio para que la generación funcione sin depender de un CDN. Las imágenes locales se procesan en el navegador y no se suben a un servidor de la app; si usas el buscador, se consulta Open Library para encontrar y descargar portadas públicas.
 
-Ideal para imprimir colecciones: cada imagen se acomoda automáticamente para aprovechar al máximo el espacio de la hoja (con dimensiones de 3x4 cm por imagen y separaciones de 3mm) y además **duplica cada portada** automáticamente.
+Ideal para imprimir colecciones: cada imagen se acomoda automáticamente para aprovechar al máximo el espacio de la hoja. Puedes elegir tamaño de portada, tamaño de hoja, margen, separación, cantidad de copias y formato de descarga.
 
 ---
 
 ## ✨ Características
 
-- 🔒 **100% Privacidad**: Las imágenes se procesan localmente en tu navegador. No se sube nada a ningún servidor.
+- 🔒 **Procesamiento local**: Las imágenes subidas desde tu equipo se procesan localmente en tu navegador.
 - ⚡ **Procesamiento instantáneo**: Generación rápida gracias a la librería `jsPDF`.
 - 🖼️ **Soporte multi-formato**: Admite imágenes `.jpg`, `.jpeg`, `.png`, y `.webp`.
-- 📏 **Disposición inteligente**: Calcula dinámicamente columnas y filas para ajustarse perfectamente al papel A4.
+- 🔎 **Buscador de portadas**: Encuentra portadas mediante Open Library y agrega la mejor versión disponible.
+- 📏 **Tamaños configurables**: Elige tamaños predefinidos o personalizados para cada portada.
+- 📄 **Hojas configurables**: A4, Carta, Oficio/Legal, A3 o medidas personalizadas.
+- 📦 **Descargas flexibles**: Exporta como PDF multipágina, PNG o JPG. Si hay varias hojas en imagen, se descargan en ZIP.
+- 📐 **Disposición inteligente**: Calcula dinámicamente columnas y filas según hoja, margen, separación y tamaño de portada.
 - 🎨 **Interfaz amigable**: Interfaz web intuitiva con soporte "Arrastrar y Soltar" (Drag and Drop).
 
 ---
@@ -51,7 +55,8 @@ Si prefieres usarlo sin internet en tu computadora:
    ```
 2. Simplemente abre el archivo `index.html` en tu navegador web favorito (Chrome, Firefox, Safari, Edge, etc.) haciendo doble clic sobre él.
 3. Selecciona o arrastra tus portadas.
-4. Haz clic en **Generar PDF** y el archivo `Coleccion_Libros_Auto.pdf` se descargará automáticamente.
+4. Ajusta tamaño de portada, hoja, copias y formato de descarga.
+5. Haz clic en **Descargar** y el archivo se generará automáticamente.
 
 ---
 
