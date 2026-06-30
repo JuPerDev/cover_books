@@ -27,9 +27,10 @@ jobs:
 
       - name: Configure Google Books
         env:
-          GOOGLE_BOOKS_API_KEY: ${{ secrets.GOOGLE_BOOKS_API_KEY || vars.GOOGLE_BOOKS_API_KEY || '' }}
+          GOOGLE_BOOKS_API_KEY_SECRET: ${{ secrets.GOOGLE_BOOKS_API_KEY }}
+          GOOGLE_BOOKS_API_KEY_VARIABLE: ${{ vars.GOOGLE_BOOKS_API_KEY }}
         run: |
-          node -e "const fs = require('fs'); const key = process.env.GOOGLE_BOOKS_API_KEY || ''; fs.writeFileSync('coverbooks.config.js', 'window.COVERBOOKS_CONFIG = ' + JSON.stringify({ googleBooksApiKey: key }) + ';\\n');"
+          node -e "const fs = require('fs'); const key = process.env.GOOGLE_BOOKS_API_KEY_SECRET || process.env.GOOGLE_BOOKS_API_KEY_VARIABLE || ''; if (!key) { throw new Error('GOOGLE_BOOKS_API_KEY is not available to this workflow. Add it as an environment secret on github-pages or as a repository secret/variable.'); } fs.writeFileSync('coverbooks.config.js', 'window.COVERBOOKS_CONFIG = ' + JSON.stringify({ googleBooksApiKey: key }) + ';\\n');"
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
