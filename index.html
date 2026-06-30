@@ -6,6 +6,20 @@
     <title>CoverBooks - Generador de Hojas de Portadas</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <script src="coverbooks.config.js"></script>
+    <script>
+        (function () {
+            var s = document.createElement('script');
+            s.src = 'coverbooks.config.local.js';
+            s.onerror = function () { };
+            s.onload = function () { 
+                if (window.COVERBOOKS_CONFIG_LOCAL && window.COVERBOOKS_CONFIG_LOCAL.googleBooksApiKey) {
+                    window.COVERBOOKS_CONFIG = window.COVERBOOKS_CONFIG || {};
+                    window.COVERBOOKS_CONFIG.googleBooksApiKey = window.COVERBOOKS_CONFIG_LOCAL.googleBooksApiKey;
+                }
+            };
+            document.head.appendChild(s);
+        })();
+    </script>
     <script src="vendor/jspdf.umd.min.js"></script>
     <script src="vendor/jszip.min.js"></script>
     <style>
@@ -476,7 +490,7 @@
                         <button class="btn secondary" id="btn-clear-google-key" type="button">Quitar</button>
                     </div>
                     <p class="hint" id="google-key-status"></p>
-                    <p class="hint" id="search-status">Busca en Open Library, Wikimedia Commons y Google Books si guardas una key local.</p>
+                    <p class="hint" id="search-status">Busca en Google Books, Open Library y Wikimedia Commons; usa la API key si está configurada.</p>
                     <div class="results" id="search-results"></div>
                 </section>
             </div>
@@ -677,7 +691,7 @@
         btnClearGoogleKey.addEventListener('click', () => {
             localStorage.removeItem(GOOGLE_BOOKS_KEY_STORAGE);
             googleBooksKeyInput.value = '';
-            updateGoogleBooksKeyUi('Google Books desactivado. Open Library y Wikimedia siguen activos.');
+            updateGoogleBooksKeyUi('Google Books se consultará sin key. Open Library y Wikimedia siguen activos.');
         });
 
         async function addLocalFiles(files) {
@@ -780,7 +794,7 @@
             } else if (hasConfiguredKey) {
                 googleKeyStatus.textContent = 'Google Books activo desde la configuración de GitHub Pages. Open Library y Wikimedia también se consultan.';
             } else {
-                googleKeyStatus.textContent = 'Google Books desactivado. Open Library y Wikimedia se consultan sin key.';
+                googleKeyStatus.textContent = 'Google Books se consultará sin key. Open Library y Wikimedia también se consultan.';
             }
         }
 
@@ -793,7 +807,7 @@
 
             const googleBooksKey = getGoogleBooksKey();
             const providers = [
-                ...(googleBooksKey ? [{ name: 'Google Books', run: () => searchGoogleBooks(query, googleBooksKey) }] : []),
+                { name: googleBooksKey ? 'Google Books' : 'Google Books sin key', run: () => searchGoogleBooks(query, googleBooksKey) },
                 { name: 'Open Library', run: () => searchOpenLibrary(query) },
                 { name: 'Wikimedia Commons', run: () => searchWikimediaCommons(query) }
             ];
@@ -865,13 +879,13 @@
             const responses = await Promise.all(variants.map(async (variant) => {
                 const params = new URLSearchParams({
                     q: variant,
-                    key,
                     printType: 'books',
                     orderBy: 'relevance',
                     projection: 'lite',
                     maxResults: '12',
                     fields: 'items(id,volumeInfo(title,subtitle,authors,publishedDate,industryIdentifiers,imageLinks,language))'
                 });
+                if (key) params.set('key', key);
                 const response = await fetch(`https://www.googleapis.com/books/v1/volumes?${params.toString()}`);
                 if (!response.ok) throw new Error('No se pudo consultar Google Books.');
                 return response.json();
@@ -1026,10 +1040,16 @@
                 || imageLinks.smallThumbnail
                 || '';
 
-            return url
-                .replace(/^http:\/\//, 'https://')
-                .replace(/&zoom=\d+/, '&zoom=0')
-                .replace(/&edge=curl/g, '');
+            if (!url) return '';
+            const https = url.replace(/^http:\/\//, 'https://');
+            const noCurl = https.replace(/&edge=curl/g, '');
+            const hasZoom = /[?&]zoom=\d+/.test(noCurl);
+            const finalUrl = hasZoom ? noCurl : noCurl + '&zoom=1';
+
+            if (/books\.google\.com\//.test(finalUrl)) {
+                return 'https://images.weserv.nl/?url=' + encodeURIComponent(finalUrl.replace(/^https?:\/\//, ''));
+            }
+            return finalUrl;
         }
 
         function getGoogleIsbn(identifiers) {

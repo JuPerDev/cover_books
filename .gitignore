@@ -9,5 +9,8 @@ __pycache__/
 *.pyo
 *.pyd
 
+# Configuración local con API key (no commitear)
+coverbooks.config.local.js
+
 # Otros
 .DS_Store
