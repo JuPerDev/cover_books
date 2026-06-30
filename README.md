@@ -11,9 +11,9 @@
 
 ## 📖 Descripción del Proyecto
 
-Esta es una aplicación web estática y moderna que funciona directamente en el navegador. Permite subir múltiples imágenes (como portadas de libros, tarjetas o cromos), buscar portadas en internet con Open Library y generar hojas listas para imprimir con una disposición en cuadrícula.
+Esta es una aplicación web estática y moderna que funciona directamente en el navegador. Permite subir múltiples imágenes (como portadas de libros, tarjetas o cromos), buscar portadas en internet con Open Library y Google Books, y generar hojas listas para imprimir con una disposición en cuadrícula.
 
-Al no requerir servidor propio ni backend de Python, es gratuita de alojar en GitHub Pages y rápida de usar. Las librerías principales van incluidas en el repositorio para que la generación funcione sin depender de un CDN. Las imágenes locales se procesan en el navegador y no se suben a un servidor de la app; si usas el buscador, se consulta Open Library para encontrar y descargar portadas públicas.
+Al no requerir servidor propio ni backend de Python, es gratuita de alojar en GitHub Pages y rápida de usar. Las librerías principales van incluidas en el repositorio para que la generación funcione sin depender de un CDN. Las imágenes locales se procesan en el navegador y no se suben a un servidor de la app; si usas el buscador, se consultan Open Library y Google Books para encontrar y descargar portadas públicas.
 
 Ideal para imprimir colecciones: cada imagen se acomoda automáticamente para aprovechar al máximo el espacio de la hoja. Puedes elegir tamaño de portada, tamaño de hoja, margen, separación, cantidad de copias y formato de descarga.
 
@@ -24,7 +24,7 @@ Ideal para imprimir colecciones: cada imagen se acomoda automáticamente para ap
 - 🔒 **Procesamiento local**: Las imágenes subidas desde tu equipo se procesan localmente en tu navegador.
 - ⚡ **Procesamiento instantáneo**: Generación rápida gracias a la librería `jsPDF`.
 - 🖼️ **Soporte multi-formato**: Admite imágenes `.jpg`, `.jpeg`, `.png`, y `.webp`.
-- 🔎 **Buscador de portadas**: Encuentra portadas mediante Open Library y agrega la mejor versión disponible.
+- 🔎 **Buscador de portadas**: Encuentra portadas mediante Open Library y Google Books, y agrega la mejor versión disponible.
 - 📏 **Tamaños configurables**: Elige tamaños predefinidos o personalizados para cada portada.
 - 📄 **Hojas configurables**: A4, Carta, Oficio/Legal, A3 o medidas personalizadas.
 - 📦 **Descargas flexibles**: Exporta como PDF multipágina, PNG o JPG. Si hay varias hojas en imagen, se descargan en ZIP.
