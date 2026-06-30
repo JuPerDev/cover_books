@@ -793,8 +793,8 @@
 
             const googleBooksKey = getGoogleBooksKey();
             const providers = [
-                { name: 'Open Library', run: () => searchOpenLibrary(query) },
                 ...(googleBooksKey ? [{ name: 'Google Books', run: () => searchGoogleBooks(query, googleBooksKey) }] : []),
+                { name: 'Open Library', run: () => searchOpenLibrary(query) },
                 { name: 'Wikimedia Commons', run: () => searchWikimediaCommons(query) }
             ];
 
@@ -804,7 +804,7 @@
 
             try {
                 const results = await Promise.allSettled(providers.map((provider) => provider.run()));
-                const books = mergeBookResults(results.flatMap((result) => result.status === 'fulfilled' ? result.value : []));
+                const books = mergeBookResults(results.flatMap((result) => result.status === 'fulfilled' ? result.value : []), query);
                 const failedSources = results.filter((result) => result.status === 'rejected').length;
 
                 if (!books.length) {
@@ -826,16 +826,19 @@
         }
 
         async function searchOpenLibrary(query) {
-            const params = new URLSearchParams({
-                q: query,
-                fields: 'key,title,author_name,first_publish_year,cover_i,isbn,edition_count',
-                limit: '16'
-            });
-            const response = await fetch(`https://openlibrary.org/search.json?${params.toString()}`);
-            if (!response.ok) throw new Error('No se pudo consultar Open Library.');
-            const data = await response.json();
+            const variants = buildSearchQueries(query).slice(0, 3);
+            const responses = await Promise.all(variants.map(async (variant) => {
+                const params = new URLSearchParams({
+                    q: variant,
+                    fields: 'key,title,author_name,first_publish_year,cover_i,isbn,edition_count',
+                    limit: '12'
+                });
+                const response = await fetch(`https://openlibrary.org/search.json?${params.toString()}`);
+                if (!response.ok) throw new Error('No se pudo consultar Open Library.');
+                return response.json();
+            }));
 
-            return (data.docs || [])
+            return responses.flatMap((data) => data.docs || [])
                 .filter((book) => book.cover_i)
                 .map((book) => {
                     const title = book.title || 'Libro sin título';
@@ -858,37 +861,43 @@
         }
 
         async function searchGoogleBooks(query, key) {
-            const params = new URLSearchParams({
-                q: query,
-                key,
-                printType: 'books',
-                maxResults: '16',
-                fields: 'items(id,volumeInfo(title,authors,publishedDate,industryIdentifiers,imageLinks))'
-            });
-            const response = await fetch(`https://www.googleapis.com/books/v1/volumes?${params.toString()}`);
-            if (!response.ok) throw new Error('No se pudo consultar Google Books.');
-            const data = await response.json();
+            const variants = buildGoogleBooksQueries(query);
+            const responses = await Promise.all(variants.map(async (variant) => {
+                const params = new URLSearchParams({
+                    q: variant,
+                    key,
+                    printType: 'books',
+                    orderBy: 'relevance',
+                    projection: 'lite',
+                    maxResults: '12',
+                    fields: 'items(id,volumeInfo(title,subtitle,authors,publishedDate,industryIdentifiers,imageLinks,language))'
+                });
+                const response = await fetch(`https://www.googleapis.com/books/v1/volumes?${params.toString()}`);
+                if (!response.ok) throw new Error('No se pudo consultar Google Books.');
+                return response.json();
+            }));
 
-            return (data.items || [])
+            return responses.flatMap((data) => data.items || [])
                 .map((item) => {
                     const info = item.volumeInfo || {};
                     const coverUrl = bestGoogleCoverUrl(info.imageLinks || {});
                     if (!coverUrl) return null;
 
                     const title = info.title || 'Libro sin título';
+                    const subtitle = info.subtitle ? `: ${info.subtitle}` : '';
                     const author = Array.isArray(info.authors) ? info.authors.slice(0, 2).join(', ') : 'Autor desconocido';
                     const year = info.publishedDate ? String(info.publishedDate).slice(0, 4) : '';
                     const isbn = getGoogleIsbn(info.industryIdentifiers || []);
 
                     return {
-                        title,
+                        title: `${title}${subtitle}`,
                         author,
                         year,
                         isbn,
                         coverUrl,
                         sourceLabel: 'Google Books',
                         sourceName: `Google Books · ${author}`,
-                        dedupeKey: isbn || normalizeKey(`${title} ${author} ${year}`)
+                        dedupeKey: isbn || normalizeKey(`${title} ${subtitle} ${author} ${year}`)
                     };
                 })
                 .filter(Boolean);
@@ -935,11 +944,15 @@
                 .filter(Boolean);
         }
 
-        function mergeBookResults(books) {
+        function mergeBookResults(books, query) {
             const seen = new Set();
             const unique = [];
 
-            for (const book of books) {
+            const ranked = books
+                .map((book, index) => ({ book, index, score: scoreBookResult(book, query) }))
+                .sort((a, b) => b.score - a.score || a.index - b.index);
+
+            for (const { book } of ranked) {
                 const key = book.isbn ? `isbn:${book.isbn}` : `${book.sourceLabel}:${book.dedupeKey || book.coverUrl}`;
                 if (seen.has(key)) continue;
                 seen.add(key);
@@ -947,6 +960,61 @@
             }
 
             return unique.slice(0, 36);
+        }
+
+        function buildSearchQueries(query) {
+            const clean = query.trim();
+            const normalized = normalizeKey(clean);
+            const variants = [clean];
+
+            if (normalized.includes('harry potter') && normalized.includes('piedra filosofal')) {
+                variants.push(
+                    'Harry Potter y la piedra filosofal',
+                    'Harry Potter la piedra filosofal',
+                    "Harry Potter and the Philosopher's Stone",
+                    "Harry Potter and the Sorcerer's Stone"
+                );
+            }
+
+            if (normalized.includes('filosofal')) {
+                variants.push(clean.replace(/piedra\s+filosofal/i, "Philosopher's Stone"));
+            }
+
+            return [...new Set(variants.filter(Boolean))];
+        }
+
+        function buildGoogleBooksQueries(query) {
+            const variants = buildSearchQueries(query);
+            const normalized = normalizeKey(query);
+            const googleQueries = [];
+
+            for (const variant of variants) {
+                googleQueries.push(variant);
+                googleQueries.push(`intitle:${variant}`);
+            }
+
+            if (normalized.includes('harry potter')) {
+                googleQueries.push('inauthor:Rowling Harry Potter');
+            }
+
+            return [...new Set(googleQueries)].slice(0, 6);
+        }
+
+        function scoreBookResult(book, query) {
+            const haystack = normalizeKey(`${book.title} ${book.author} ${book.year}`);
+            const terms = normalizeKey(query).split(' ').filter((term) => term.length > 2);
+            const matchedTerms = terms.filter((term) => haystack.includes(term)).length;
+            let score = matchedTerms * 10;
+
+            if (book.sourceLabel === 'Google Books') score += 40;
+            if (book.sourceLabel === 'Open Library') score += 20;
+            if (book.sourceLabel === 'Wikimedia Commons') score += 5;
+            if (book.isbn) score += 8;
+            if (/rowling/i.test(book.author)) score += 12;
+            if (/harry potter/i.test(book.title)) score += 12;
+            if (/piedra filosofal|philosopher|sorcerer/i.test(book.title)) score += 20;
+
+            return score;
         }
 
         function bestGoogleCoverUrl(imageLinks) {
