@@ -460,7 +460,7 @@
                         <input class="field" type="search" id="cover-query" placeholder="Título, autor o ISBN">
                         <button class="btn" id="btn-search">Buscar</button>
                     </div>
-                    <p class="hint" id="search-status">Busca en Open Library y Google Books para encontrar más portadas en la mejor calidad disponible.</p>
+                    <p class="hint" id="search-status">Busca en Open Library y Wikimedia Commons para encontrar más portadas en la mejor calidad disponible.</p>
                     <div class="results" id="search-results"></div>
                 </section>
             </div>
@@ -717,13 +717,13 @@
             }
 
             btnSearch.disabled = true;
-            searchStatus.textContent = 'Buscando portadas en Open Library y Google Books...';
+            searchStatus.textContent = 'Buscando portadas en Open Library y Wikimedia Commons...';
             searchResults.innerHTML = '';
 
             try {
                 const results = await Promise.allSettled([
                     searchOpenLibrary(query),
-                    searchGoogleBooks(query)
+                    searchWikimediaCommons(query)
                 ]);
                 const books = mergeBookResults(results.flatMap((result) => result.status === 'fulfilled' ? result.value : []));
                 const failedSources = results.filter((result) => result.status === 'rejected').length;
@@ -778,37 +778,42 @@
                 });
         }
 
-        async function searchGoogleBooks(query) {
+        async function searchWikimediaCommons(query) {
             const params = new URLSearchParams({
-                q: query,
-                printType: 'books',
-                maxResults: '12',
-                fields: 'items(id,volumeInfo(title,authors,publishedDate,industryIdentifiers,imageLinks))'
+                action: 'query',
+                format: 'json',
+                origin: '*',
+                generator: 'search',
+                gsrsearch: `${query} book cover filetype:bitmap`,
+                gsrnamespace: '6',
+                gsrlimit: '14',
+                prop: 'imageinfo',
+                iiprop: 'url|size|mime',
+                iiurlwidth: '900'
             });
-            const response = await fetch(`https://www.googleapis.com/books/v1/volumes?${params.toString()}`);
-            if (!response.ok) throw new Error('No se pudo consultar Google Books.');
+            const response = await fetch(`https://commons.wikimedia.org/w/api.php?${params.toString()}`);
+            if (!response.ok) throw new Error('No se pudo consultar Wikimedia Commons.');
             const data = await response.json();
+            const pages = Object.values((data.query && data.query.pages) || {});
 
-            return (data.items || [])
-                .map((item) => {
-                    const info = item.volumeInfo || {};
-                    const coverUrl = bestGoogleCoverUrl(info.imageLinks || {});
+            return pages
+                .map((page) => {
+                    const info = (page.imageinfo && page.imageinfo[0]) || {};
+                    const coverUrl = info.thumburl || info.url || '';
                     if (!coverUrl) return null;
 
-                    const title = info.title || 'Libro sin título';
-                    const author = Array.isArray(info.authors) ? info.authors.slice(0, 2).join(', ') : 'Autor desconocido';
-                    const year = info.publishedDate ? String(info.publishedDate).slice(0, 4) : '';
-                    const isbn = getGoogleIsbn(info.industryIdentifiers || []);
+                    const title = cleanCommonsTitle(page.title || 'Portada de libro');
+                    const dimensions = info.width && info.height ? `${info.width}x${info.height}` : '';
 
                     return {
                         title,
-                        author,
-                        year,
-                        isbn,
+                        author: 'Wikimedia Commons',
+                        year: dimensions,
+                        isbn: '',
                         coverUrl,
-                        sourceLabel: 'Google Books',
-                        sourceName: `Google Books · ${author}`,
-                        dedupeKey: isbn || normalizeKey(`${title} ${author} ${year}`)
+                        sourceLabel: 'Wikimedia Commons',
+                        sourceName: 'Wikimedia Commons',
+                        dedupeKey: normalizeKey(`${title} ${coverUrl}`)
                     };
                 })
                 .filter(Boolean);
@@ -828,24 +833,13 @@
             return unique.slice(0, 28);
         }
 
-        function bestGoogleCoverUrl(imageLinks) {
-            const url = imageLinks.extraLarge
-                || imageLinks.large
-                || imageLinks.medium
-                || imageLinks.small
-                || imageLinks.thumbnail
-                || imageLinks.smallThumbnail
-                || '';
-
-            return url
-                .replace(/^http:\/\//, 'https://')
-                .replace(/&zoom=\d+/, '&zoom=0');
-        }
-
-        function getGoogleIsbn(identifiers) {
-            const isbn13 = identifiers.find((item) => item.type === 'ISBN_13')?.identifier;
-            const isbn10 = identifiers.find((item) => item.type === 'ISBN_10')?.identifier;
-            return isbn13 || isbn10 || '';
+        function cleanCommonsTitle(value) {
+            return value
+                .replace(/^File:/, '')
+                .replace(/\.[a-z0-9]+$/i, '')
+                .replace(/[_-]+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
         }
 
         function normalizeKey(value) {
