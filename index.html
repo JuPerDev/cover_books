@@ -537,6 +537,13 @@
                             <input class="field" type="number" id="input-copies" value="2" min="1" max="100">
                         </div>
                         <div class="setting">
+                            <label for="image-fit">Ajuste de imagen</label>
+                            <select class="select" id="image-fit">
+                                <option value="crop">Recortar (cubre, sin deformar)</option>
+                                <option value="fill">Estirar (completa, puede deformar)</option>
+                            </select>
+                        </div>
+                        <div class="setting">
                             <label for="download-format">Formato de descarga</label>
                             <select class="select" id="download-format">
                                 <option value="pdf">PDF multipágina</option>
@@ -603,6 +610,7 @@
         const sheetW = document.getElementById('sheet-w');
         const sheetH = document.getElementById('sheet-h');
         const downloadFormat = document.getElementById('download-format');
+        const imageFit = document.getElementById('image-fit');
 
         const PRINT_SCALE = 12;
         const GOOGLE_BOOKS_KEY_STORAGE = 'coverbooks.googleBooksKey';
@@ -666,7 +674,7 @@
             updateLayoutNote();
         });
 
-        [inputW, inputH, inputCopies, inputMargin, inputSpacing, sheetW, sheetH, downloadFormat].forEach((element) => {
+        [inputW, inputH, inputCopies, inputMargin, inputSpacing, sheetW, sheetH, downloadFormat, imageFit].forEach((element) => {
             element.addEventListener('input', updateLayoutNote);
         });
 
@@ -1191,7 +1199,7 @@
                 const targetY = mmToPx(config.margin + row * (config.imgH + config.spacing), config.scale);
                 const targetW = mmToPx(config.imgW, config.scale);
                 const targetH = mmToPx(config.imgH, config.scale);
-                drawCover(ctx, image, targetX, targetY, targetW, targetH);
+                drawCover(ctx, image, targetX, targetY, targetW, targetH, config.fit);
 
                 placedOnPage++;
                 col++;
@@ -1215,7 +1223,12 @@
             return canvas;
         }
 
-        function drawCover(ctx, image, x, y, w, h) {
+        function drawCover(ctx, image, x, y, w, h, fit = 'crop') {
+            if (fit === 'fill') {
+                ctx.drawImage(image, 0, 0, image.naturalWidth, image.naturalHeight, x, y, w, h);
+                return;
+            }
+
             const imageRatio = image.naturalWidth / image.naturalHeight;
             const targetRatio = w / h;
             let sx = 0;
@@ -1302,6 +1315,7 @@
                 cols,
                 rows,
                 perPage,
+                fit: imageFit.value === 'fill' ? 'fill' : 'crop',
                 scale: PRINT_SCALE
             };
         }
